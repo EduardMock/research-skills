@@ -3,7 +3,7 @@ name: nglview
 description: Interactive 3D molecular visualization in Jupyter notebooks for small molecules, catalysts, organometallic complexes, and reaction trajectories. Visualize QM/MM simulations, reaction coordinates, ligand conformers. Create publication-quality images, multi-panel comparisons, and movies from Amber, Gromacs, CHARMM, OpenMM. Representations optimized for small molecules (ball-stick, licorice, spacefill).
 license: MIT
 metadata:
-    skill-author: K-Dense Inc.
+    skill-author: Eduard Mock
 ---
 
 # NGLView - Interactive Molecular Visualization for Chemistry
