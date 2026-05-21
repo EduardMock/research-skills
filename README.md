@@ -28,4 +28,4 @@ Browse the wider skills ecosystem at [skills.sh](https://skills.sh/).
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Note: `nglview` is reused from K-Dense Inc. under MIT (preserved in its frontmatter `metadata.skill-author`).
+MIT — see [LICENSE](LICENSE).
