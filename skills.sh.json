@@ -1,0 +1,16 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "groupings": [
+    {
+      "title": "Cheminformatics",
+      "description": "SMILES editing and molecular structure manipulation.",
+      "skills": ["fast-smiles"]
+    },
+    {
+      "title": "Computational chemistry",
+      "description": "Quantum-mechanical methods and molecular visualization.",
+      "skills": ["g-xtb", "nglview"]
+    }
+  ],
+  "notGrouped": "bottom"
+}
