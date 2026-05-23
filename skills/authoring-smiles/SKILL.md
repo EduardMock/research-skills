@@ -108,8 +108,10 @@ For molSimplify: also `mol3D.from_smiles(smi, gen3d=True)` must succeed.
 Load on demand:
 
 - **references/substitution-patterns.md** — aromatic substitution idioms (ortho/meta/para, 1,3,5-, 2,6-, 2,4,6-), library of common substituent fragments, paper-to-SMILES recipe.
-- **references/organometallic-and-catalysts.md** — NHC carbenes (IMes, IPr, SIPr, CAACs), metal centres, dative bonds, molSimplify-specific conventions.
+- **references/organometallic-and-catalysts.md** — full rule set for organometallics: dative bonds (`->`/`<-`), amido/alkoxo σ bonds, NHC carbenes (IMes, IPr, SIPr, CAACs), phosphines and the `[PH]` artifact, η²/η³/η⁵/η⁶ hapticity (three encoding styles), μ-bridging ligands, M–M multiple bonds (incl. `$` quadruple), catalytic intermediates (oxidative addition, metallacycles, Grubbs, Schrock), sanitization patterns, molSimplify conventions.
+- **references/literature.md** — papers (Rasmussen 2025 conventions paper, InChI 1.07, tmQMg/-L, MOSAEC), open-source library landscape (molSimplify, Architector, MACE, stk, Morfeus), RDKit version timeline, open issues to know about.
 - **references/worked-examples.md** — three paper-to-SMILES walkthroughs (IMes, ethyl E-cinnamate, 2,6-diisopropylaniline) showing the full construction.
+- **tests/test_organometallic_smiles.py** — 45 executable tests of every rule and footgun in `organometallic-and-catalysts.md`. Run via `python tests/test_organometallic_smiles.py` (no pytest needed) or `pytest tests/ -v`.
 
 ## Related skills
 
