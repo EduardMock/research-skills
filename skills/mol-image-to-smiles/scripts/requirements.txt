@@ -1,0 +1,10 @@
+# mol-image-to-smiles — hard deps for the local-DECIMER path
+decimer>=2.8.0
+rdkit>=2023.0
+Pillow>=9.0
+
+# Optional: MolNextR fallback (only needed if --engine molnextr or auto-fallback fires)
+# huggingface_hub>=0.20
+
+# Optional: page → cropped molecules
+# decimer-segmentation>=1.1
