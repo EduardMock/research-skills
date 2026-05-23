@@ -1,0 +1,10 @@
+# reaction-data-extraction — RxnScribe must be installed from source:
+#   git clone https://github.com/thomas0809/RxnScribe.git
+#   cd RxnScribe && pip install -r requirements.txt && pip install .
+#
+# The deps below cover the wrapper script + downstream validation/rendering.
+
+torch>=2.0
+huggingface_hub>=0.20
+rdkit>=2023.0
+Pillow>=9.0
