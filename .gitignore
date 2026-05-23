@@ -7,3 +7,6 @@ __pycache__/
 
 # Local planning / working docs
 docs/superpowers/plans/
+
+# Runtime caches (paper-fetch-smiles: fetched from GitHub/PubChem, regeneratable)
+.compound_cache/
