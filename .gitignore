@@ -15,5 +15,7 @@ docs/superpowers/plans/
 .claude/
 
 # Project-local Python envs and ML model caches (regeneratable; >GB)
+.venv/
 .venv-*/
+venv/
 .cache/
