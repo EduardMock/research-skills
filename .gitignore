@@ -10,3 +10,10 @@ docs/superpowers/plans/
 
 # Runtime caches (paper-fetch-smiles: fetched from GitHub/PubChem, regeneratable)
 .compound_cache/
+
+# Claude harness state (worktrees, settings)
+.claude/
+
+# Project-local Python envs and ML model caches (regeneratable; >GB)
+.venv-*/
+.cache/
