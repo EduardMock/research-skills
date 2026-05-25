@@ -1,29 +1,43 @@
 ---
 name: paper-fetch-smiles
-description: Use when converting a chemistry paper PDF into a Python compound catalog — produces a `compounds.py` with `PAPER_COMPOUND_TABLE` (paper_id, role, name, fallback_smiles per entry) and `EXPECTED_ELECTRONIC_STRUCTURE` for any transition-metal species. Triggers on phrases like "extract SMILES from this paper", "build compounds.py for this PDF", "catalog all compounds from this paper", "make a compound table for paper X". Enforces complete coverage of numbered species (Tables, Schemes, equations) AND named protagonists (catalysts/ligands actually used), excludes references-only mentions, and routes hand-authoring through `authoring-smiles`.
+description: Use when converting a chemistry paper PDF into a compound catalog — the hand-authored ground truth is `compounds.py` (`PAPER_COMPOUND_TABLE` + `EXPECTED_ELECTRONIC_STRUCTURE`), which `scripts/cli.py build` then resolves into `compounds.json` (PubChem canonical SMILES / InChI / CID / MW / optional tmQMg-L crystal data / RDKit review block, plus the carried-through electronic structure) and `scripts/cli.py render` draws as `compounds.png`. Triggers on phrases like "extract SMILES from this paper", "build compounds.py for this PDF", "catalog all compounds from this paper", "make a compound table for paper X". Enforces complete coverage of numbered species (Tables, Schemes, equations) AND named protagonists (catalysts/ligands actually used), excludes references-only mentions, and routes hand-authoring through `authoring-smiles`.
 ---
 
 # paper-fetch-smiles
 
 ## Purpose
 
-Turn a chemistry paper PDF into a single Python module (`compounds.py`) that downstream pipelines can import. The output is the **input** to `chemstructure-database-creation` — that skill resolves the table against PubChem and tmQMg-L. This skill is the upstream extractor that produces the raw `[{paper_id, role, name, fallback_smiles}, …]` list.
+Turn a chemistry paper PDF into a resolved compound catalog. The skill produces three artifacts in tandem:
+
+1. **`compounds.py`** — hand-authored from the paper. The **ground truth** (`PAPER_COMPOUND_TABLE` + `EXPECTED_ELECTRONIC_STRUCTURE`). Edit this if a compound needs correcting, then regenerate the other two.
+2. **`compounds.json`** — `compounds.py` resolved against PubChem and (optionally) tmQMg-L by `scripts/cli.py build`. Carries the hand-authored fields, the PubChem-resolved fields, the run `metadata`, AND the `expected_electronic_structure` block (so downstream consumers need only this one file). This is what downstream notebooks load.
+3. **`compounds.png`** — 2D-structure grid rendered by `scripts/cli.py render`. Mandatory visual-verification artifact.
+
+`compounds.py` is the input to the resolver; the resolver populates `compounds.json` from PubChem + tmQMg-L and carries the electronic structure through; the renderer turns the resolved data into a structure grid. The skill drives all three steps in one run.
 
 ## When to use
 
 - A user hands you a paper PDF and asks for SMILES of every compound.
-- You need `compounds.py` for a molSimplify `exploration_notebook/<system>/` directory.
 - A downstream notebook expects `PAPER_COMPOUND_TABLE` + `EXPECTED_ELECTRONIC_STRUCTURE` from a paper.
 
 ## When NOT to use
 
 - Just one or two SMILES from a figure → `authoring-smiles` directly.
 - Editing an existing SMILES (NL instruction) → `fast-smiles`.
-- Resolving names you already have against PubChem → `chemstructure-database-creation`.
 
-## Output file shape (HARD requirement)
+## Output files (HARD requirement)
 
-The file `compounds.py` MUST contain exactly two module-level constants:
+A successful run produces **three artifacts** in the user-specified directory:
+
+| File | Purpose | How it is produced |
+|---|---|---|
+| `compounds.py` | Hand-authored **ground truth** (`PAPER_COMPOUND_TABLE` + `EXPECTED_ELECTRONIC_STRUCTURE`). Human-readable, typed, version-controllable. | Written by this skill from the paper. |
+| `compounds.json` | Resolved DB — PubChem-canonical SMILES / InChI / CID / MW, optional tmQMg-L crystal data, RDKit review block per row, run metadata, plus the carried-through `expected_electronic_structure`. | Produced by `scripts/cli.py build` from `compounds.py` (Workflow step 9). |
+| `compounds.png` | RDKit 2D-structure grid for visual verification. | `scripts/cli.py render` (Workflow step 10). |
+
+**All three must exist** when the skill reports done. The PNG is what reviewers check first; the JSON is what downstream notebooks load; the PY is the ground truth that the JSON and PNG are regenerated from.
+
+### `compounds.py` shape
 
 ```python
 # <relative_path>/compounds.py
@@ -49,21 +63,39 @@ EXPECTED_ELECTRONIC_STRUCTURE: dict[str, dict[str, Any]] = {
 Every row in `PAPER_COMPOUND_TABLE` has all four keys present. No optional fields, no `null`.
 `EXPECTED_ELECTRONIC_STRUCTURE` is present even if empty (`{}` for purely organic papers).
 
+### `compounds.json` shape
+
+Emitted by the resolver CLI. Top-level keys are `metadata` (run statistics), `expected_electronic_structure` (carried through verbatim from `compounds.py`), and `compounds` (a list, one entry per `PAPER_COMPOUND_TABLE` row, enriched with PubChem fields `iupac`, `smiles`, `canonical_smiles`, `isomeric_smiles`, `inchi`, `inchikey`, `cid`, `mw`, plus `source`, optional `tmqml` block, and an RDKit `review` block). Inspect `test/ni-louie/compounds.json` for the canonical example (note: that fixture predates the EES carry-through and so has no `expected_electronic_structure` key).
+
+Unresolved rows still appear in `compounds.json` with `source: "fallback"` and the hand-authored `fallback_smiles` carried through — never silently dropped.
+
 ## Allowed `role` vocabulary
 
-Use exactly one of:
+The `role` is not free-form text. Every compound in the paper plays exactly one part in the chemistry, and the field must come from the closed set below. The four **meta-categories** are the only options:
 
-| role | When |
+| Meta-category | Question to ask | Concrete `role` values |
+|---|---|---|
+| **Catalyst system** | "Is this what enables the reaction (added to the flask, but not consumed stoichiometrically)?" | `catalyst` (generic), `catalyst_precursor`, `ligand` |
+| **Educt (substrate)** | "Is this what gets consumed and transformed?" | `educt` (generic), or a substrate noun the paper uses (`diyne`, `dienyne`, `enyne`, `alkene`, `alkyne`, `aldehyde`, `imine`, `arene`, `CO`, `CO2`, …) |
+| **Product** | "Is this what the reaction makes?" | `product` (generic), or a product noun the paper uses (`pyrone`, `pyridone`, `arene`, `lactone`, `amine`, …) |
+| **Mechanistic species** | "Is this drawn inside the catalytic cycle as a transient or resting state?" | `intermediate` (on-cycle), `off_cycle` (deactivation / resting state) |
+
+The educt → product reasoning step (below) is what tells you which meta-category a compound belongs to. Once the meta-category is fixed, the concrete `role` value is one of:
+
+| `role` | When |
 |---|---|
+| `catalyst` | Generic catalyst fallback — use for a pre-formed isolated catalyst complex that does not cleanly fit `catalyst_precursor` (which implies an in-flask precursor + ligand assembly) |
 | `catalyst_precursor` | Metal complex actually added to the flask (Ni(COD)2, [Rh(cod)Cl]₂, …) |
 | `ligand` | Added co-ligand (NHC, phosphine, bipyridine, …) — also use for the free ligand of a precursor when discussed separately (e.g., COD as a separate entry from Ni(COD)2) |
+| `educt` | Generic substrate fallback — use when the paper does not name a specific class, or when several substrate classes share a row and one umbrella label is cleaner |
 | `diyne`, `dienyne`, `enyne` | Substrate class — match the paper's chemistry vocabulary |
-| Other substrate roles | `alkene`, `alkyne`, `aldehyde`, … — pick what the paper studies |
-| Product roles | `pyrone`, `pyridone`, `arene`, `lactone`, … — what the paper makes |
+| Other substrate nouns | `alkene`, `alkyne`, `aldehyde`, … — pick what the paper studies |
+| `product` | Generic product fallback — use when the paper does not name a specific product class |
+| Product nouns | `pyrone`, `pyridone`, `arene`, `lactone`, … — what the paper makes |
 | `intermediate` | On-cycle mechanistic species (drawn in the catalytic cycle) |
 | `off_cycle` | Drawn off the productive cycle (deactivation, resting state) |
 
-If unsure, pick the noun the paper uses in its own scheme captions.
+**Prefer the specific value** (`catalyst_precursor`, `diyne`, `pyrone`) over the generic (`catalyst`, `educt`, `product`) whenever it cleanly fits — the more specific role is more informative downstream. Fall back to the generics only when no specific value fits. If unsure of the meta-category, the educt → product reasoning step will force the answer.
 
 ## Inclusion criteria (closes the over-extraction failure mode)
 
@@ -127,6 +159,40 @@ When a structure has an `R` (or `R'`, `R''`) marker and a paper_id, and a table 
 
 When you're unsure how a R-symbol maps to atoms (e.g., does R sit on the alkyne terminus or the tether carbon?), use the product structure of the corresponding pyrone/arene to infer where the R went in the substrate. Cycloadditions preserve atoms — the product reveals the substrate's R-positions.
 
+## Educt → product reasoning (closes the regioisomer-assignment failure mode)
+
+When the paper reports a reaction A + B → C, enumerate **every product that could form from A + B** *before* writing the SMILES for C. Then map the paper's claim onto one of those alternatives. Skipping this step is how you end up putting a substituent on the wrong ring carbon — the SMILES parses, the formula matches, and the structure is silently wrong.
+
+The trap is most acute for **asymmetric substrates** entering a symmetric reaction template:
+
+- Unsymmetric diyne (H/R termini) + CO2 [2+2+2] → **2 regioisomers** of the bicyclic 2-pyrone (R adjacent to ring O vs. R adjacent to C=O).
+- Unsymmetric alkene + alkyne + CO2 → up to 4.
+- Unsymmetric internal alkyne dimerisation → head-to-head vs. head-to-tail.
+- Migratory insertion / β-H elimination on a prochiral substrate → linear vs. branched.
+
+The paper's "exclusive regioselectivity for X, no Y observed" claim only makes sense if you know what Y was — and *that* is what tells you which atom in your product bears R.
+
+**Procedure:**
+
+1. **Identify the reaction equation.** Write A + B + … → C (+ D) with the catalyst above the arrow.
+2. **Tag every compound with its meta-category** — `educt` / `product` / `catalyst` / `intermediate` (or `off_cycle`). This is a forced choice from a fixed set: once you've decided which side of the arrow a compound sits on (or whether it sits inside the cycle box), the meta-category is determined, and the concrete `role` follows from the table above. No compound stays uncategorised — if you can't place it, you don't understand its function in the paper yet, and you must re-read before drafting its SMILES.
+3. **List the bonds being formed** in the named transformation (e.g., 2 new C–C and 1 new C–O for [2+2+2] with CO2).
+4. **Enumerate the regiochemical permutations** of those bond-forming events, drawing each alternative product on scratch paper or as a SMILES string.
+5. **Map the paper's claim** to one permutation. Verify:
+   - The reported product's substituent position is internally consistent with the enumeration (atoms come from somewhere — trace them).
+   - The "regio-excluded" structure (often phrased "without formation of the corresponding 4-R isomer", "exclusively", "no other regioisomer was detected") is one of your enumerated alternatives — not a different scaffold.
+6. **Do NOT include the non-formed regioisomer as a `PAPER_COMPOUND_TABLE` row** — it falls under the comparison-only exclusion. But the *act of enumerating it* is what lets you assign substituent positions on the product you DO include with confidence.
+
+The output of this reasoning is two things: (a) a confidence-justified product SMILES, and (b) a tagged `role` for every row, drawn from the closed taxonomy in [Allowed role vocabulary](#allowed-role-vocabulary).
+
+**Recommended tools for this step:**
+
+- **`fast-smiles`** *(primary)* — once you have a parent product SMILES, fast-smiles maps an NL instruction like "move the iPr from C1 to C4" to the right RDKit transformation (RWMol / `ReplaceSubstructs` / reaction SMARTS). Use it to sketch the alternative regioisomer for your own sanity check, then keep only the one the paper reports. Lower friction than writing SMARTS by hand.
+- **`rdkit`** *(rigorous fallback)* — for ambiguous cases or library-style enumeration: encode the reaction as a SMARTS template once (`AllChem.ReactionFromSmarts`), run both substrate orientations through it, and inspect every product the reaction returns. Heavier setup but it surfaces alternatives you might not think of.
+- **`authoring-smiles`** — if both alternatives need drawing from scratch (e.g., a mechanism scheme didn't actually print the regio-excluded product), draft each by hand using the five-rule construction order, then compare to the paper's drawing.
+
+**Red flag:** about to write a product SMILES with a substituent whose ring position you have not justified by tracing atoms from the substrate. Stop — enumerate the alternatives, even if mentally, before committing.
+
 ## Authoring SMILES — required ritual
 
 **REQUIRED SUB-SKILL:** Use `authoring-smiles` for every fallback_smiles. The skill's "five-rule construction order" and verification ritual apply unchanged.
@@ -159,7 +225,7 @@ For every transition-metal-bearing species (precursor, in-situ adduct, on-cycle 
 Conventions:
 - Keys mirror the paper's vocabulary: `"Ni(COD)2"`, `"Ni(IPr)2"`, `"Ni(IPr)_eta2_alkyne"`, `"nickelactone_19"`, `"metallacycle_20"`, `"nickelole_21"`. Numbered species get `_<paper_id>` appended for traceability.
 - Include the in-situ adduct (Ni(IPr)2) even though it's NOT a row in `PAPER_COMPOUND_TABLE` — this is where it lives.
-- A purely organic paper still defines the dict, as `EXPECTED_ELECTRONIC_STRUCTURE = {}`.
+- A purely organic paper still defines the dict, as `EXPECTED_ELECTRONIC_STRUCTURE = {}`. It is carried through into `compounds.json` unchanged.
 
 Quick reference for common d^n / geometry combos:
 
@@ -180,21 +246,56 @@ When the paper draws an intermediate without specifying the spectator-ligand cou
 2. Run the **Coverage sweep** (above) — write a `TodoWrite` per source (Table 1, Scheme 1, eq 2, named-species text) so nothing is skipped.
 3. Apply the **Inclusion criteria** — drop comparison/footnote-only mentions.
 4. Apply **R-group expansion** to every R-bearing row in a Table.
-5. For each compound, draft SMILES using `authoring-smiles`. Verify with RDKit:
+5. Apply **Educt → product reasoning** to every reaction whose substrates and products both appear in the table — enumerate alternative regio/stereo outcomes (use `fast-smiles` to sketch them) so the substituent positions in the product SMILES are atom-traced rather than guessed.
+6. For each compound, draft SMILES using `authoring-smiles`. Sanity-check parse with RDKit:
    ```python
    from rdkit import Chem
    for row in PAPER_COMPOUND_TABLE:
        mol = Chem.MolFromSmiles(row["fallback_smiles"], sanitize=False)
        assert mol is not None, row["paper_id"]
    ```
-   `sanitize=False` for organometallic rings; switch to `sanitize=True` for purely organic compounds.
-6. Build `EXPECTED_ELECTRONIC_STRUCTURE` for every metal species (precursor, adducts, on/off-cycle metallacycles).
-7. Write `compounds.py` to the user-specified path.
-8. **Cross-check** before reporting done:
-   - `len(PAPER_COMPOUND_TABLE) == <expected count>` — paper_id max + named entries.
-   - Every numeric paper_id from 1 to max is present (no gaps).
-   - Every metal-bearing row has a corresponding `EXPECTED_ELECTRONIC_STRUCTURE` entry.
-   - Every `fallback_smiles` parses with RDKit.
+   `sanitize=False` for organometallic rings; switch to `sanitize=True` for purely organic compounds. (The resolver also runs an RDKit review pass per row when invoked with `--review`.)
+7. Build `EXPECTED_ELECTRONIC_STRUCTURE` for every metal species (precursor, adducts, on/off-cycle metallacycles).
+8. **Write `compounds.py`** (the ground truth) to the user-specified path, with the two module constants in the shape shown above.
+9. **Resolve to `compounds.json`.** Run the resolver CLI from the skill root (`skills/paper-fetch-smiles/`) so the `scripts` package imports cleanly. The CLI takes a JSON file — dump both module constants from `compounds.py` into a temp JSON (so the electronic structure rides along), then call `scripts.cli build`:
+   ```bash
+   # <out_dir> holds compounds.py and is where compounds.json will land.
+   micromamba run -n mdclustering python - <<PY
+   import json, sys
+   sys.path.insert(0, "<out_dir>")
+   from compounds import PAPER_COMPOUND_TABLE, EXPECTED_ELECTRONIC_STRUCTURE
+   json.dump({"compounds": PAPER_COMPOUND_TABLE,
+              "expected_electronic_structure": EXPECTED_ELECTRONIC_STRUCTURE},
+             open("<out_dir>/_compounds_input.json", "w"), indent=2)
+   PY
+
+   micromamba run -n mdclustering python -m scripts.cli build \
+     --input  <out_dir>/_compounds_input.json \
+     --output <out_dir>/compounds.json        \
+     --review
+   rm <out_dir>/_compounds_input.json
+   ```
+   `compounds.py` stays the ground truth — the temp JSON is throwaway. The resolver carries `expected_electronic_structure` through to `compounds.json` verbatim and adds the PubChem-resolved fields (`iupac`, `smiles`, `canonical_smiles`, `isomeric_smiles`, `inchi`, `inchikey`, `cid`, `mw`, `source`, `tmqml`, `review`) plus a `metadata` block.
+
+   **Cache:** `--cache-dir` is optional and defaults to `.compound_cache` (relative to the cwd, i.e. the skill root). The cache stores PubChem responses so repeat runs across papers don't re-fetch e.g. Ni(COD)2 from scratch — it is an ephemeral runtime artifact, already in the repo's `.gitignore`. Override with `--cache-dir <path>` only for a per-paper cache; otherwise let the default share state across papers.
+
+   **tmQMg-L:** add `--match-tmqml` if the paper contains TMC ligands worth a crystal-structure lookup; omit for purely organic papers.
+
+   **Reading the result:** inspect the stderr summary — `n_compounds`, `n_resolved_pubchem`, `n_fallback`, `n_unresolved`. Any unresolved row carries `fallback_smiles` through and is not silently dropped; re-author the row's `name` in `compounds.py` and re-run if you expected a PubChem hit.
+10. **Render `compounds.png`** for the visual check (the `authoring-smiles` verification ritual is *required*, not optional):
+    ```bash
+    micromamba run -n mdclustering python -m scripts.cli render \
+      --input  <out_dir>/compounds.json \
+      --output <out_dir>/compounds.png
+    ```
+    Open the PNG and confirm every structure matches the paper's drawing. A SMILES that parses but draws wrong is the failure mode this catches. Unparseable rows (e.g., aggressive metallacycles) appear as labelled `[unparseable]` placeholders rather than missing cells.
+11. **Cross-check** before reporting done:
+    - `len(PAPER_COMPOUND_TABLE) == <expected count>` — paper_id max + named entries.
+    - Every numeric paper_id from 1 to max is present (no gaps).
+    - Every metal-bearing row has a corresponding `EXPECTED_ELECTRONIC_STRUCTURE` entry.
+    - Every `fallback_smiles` parses with RDKit.
+    - All three output files (`compounds.py`, `compounds.json`, `compounds.png`) exist in the output directory.
+    - `compounds.json` `metadata.n_compounds == len(PAPER_COMPOUND_TABLE)` and `n_unresolved` is acceptable (0 ideal; non-zero rows must have a usable `fallback_smiles`).
 
 ## Common mistakes
 
@@ -209,6 +310,7 @@ When the paper draws an intermediate without specifying the spectator-ligand cou
 | Confuses substrate `1` (R=Me diyne) with product `10` (R=Me pyrone) — both have R=Me but different scaffolds | Treat the paper_id as the primary key, not the R-value. |
 | Skips IMes because IPr was the "main" ligand | Both are charged to flasks (Table footer, screening discussion) — both included. |
 | Adds stereochemistry without paper support | Skeleton-only is correct unless wedges are drawn. |
+| Puts R at the wrong ring position on an asymmetric-substrate product (e.g., 4-iPr vs. 1-iPr pyrone) | Educt → product reasoning: enumerate all regiochemical outcomes from the substrates, then map the paper's claim onto one. Use `fast-smiles` to sketch the alternative. |
 
 ## Red flags — STOP and re-check
 
@@ -219,10 +321,11 @@ When the paper draws an intermediate without specifying the spectator-ligand cou
 - About to include a solvent or bulk reagent.
 - About to add a row for an **adduct** of two existing rows (e.g., Ni(IPr)2 when Ni(COD)2 and IPr are already rows). The adduct goes in `EXPECTED_ELECTRONIC_STRUCTURE`, not the table.
 - About to add a row from a footnote whose phrasing is "alternatively …" or "in lieu of … can also be used" — the alternative reagents are NOT compounds, the named ligand they generate IS.
+- About to write a product SMILES with a substituent at a ring position you have NOT justified by tracing atoms from the substrate (educt → product reasoning skipped).
 
 ## Related skills
 
 - `authoring-smiles` — REQUIRED sub-skill for hand-drawing every SMILES.
-- `fast-smiles` — useful when revising an R-group variant from a parent SMILES.
-- `chemstructure-database-creation` — downstream consumer; takes this skill's `PAPER_COMPOUND_TABLE` and produces a canonical JSON DB via PubChem + tmQMg-L.
-- `rdkit` — for the verification ritual (parse, canonicalize, render).
+- `fast-smiles` — REQUIRED for educt → product reasoning: sketch the regio-alternative of a product from the reported parent SMILES with a one-line NL instruction. Also useful for R-group variants.
+- `rdkit` — for the verification ritual (parse, canonicalize, render) AND for rigorous reaction-template enumeration (`AllChem.ReactionFromSmarts`) when the regiochemistry is ambiguous.
+- `chemstructure-database-creation` — downstream consumer; takes this skill's `PAPER_COMPOUND_TABLE` / `compounds.json` and produces further canonical JSON DBs.
