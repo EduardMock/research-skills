@@ -82,7 +82,7 @@ If `{{ORACLE}}` is non-empty, append `templates/oracle-appendix.md.tmpl` (with s
 
 ### 5. Verify
 
-- `CLAUDE.md` ≤ 100 lines (≤ 80 without oracle appendix). If over, surface — likely a placeholder bled through or an appendix is duplicated.
+- `CLAUDE.md` ≤ 100 lines (≤ 95 without oracle appendix). If over, surface — likely a placeholder bled through or an appendix is duplicated.
 - No `{{...}}` placeholder leaks through into any written file.
 - Report what was created via `git status`.
 
@@ -98,7 +98,7 @@ End with this message to the agent (paraphrase OK, intent must hold):
 - One-line docstrings on generated stubs; two only if essential.
 - Tables instead of paragraphs where the data is comparative.
 - Omit a section entirely if it has no content for *this* project.
-- Generated `CLAUDE.md` target: ≤ 80 lines (≤ 100 with oracle appendix).
+- Generated `CLAUDE.md` target: ≤ 95 lines (≤ 100 with oracle appendix).
 - These rules apply to this `SKILL.md` itself.
 
 ## Failure modes — surface, don't paper over

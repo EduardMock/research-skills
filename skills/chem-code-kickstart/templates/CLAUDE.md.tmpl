@@ -36,6 +36,17 @@ def water_bridge_count(traj: Trajectory, cutoff: float = 3.5) -> int:
     """Count water bridges between ligand and protein within `cutoff` Å."""
 ```
 
+### Test — `--fast` subsample + concise output
+Use the `fast` fixture from `tests/conftest.py`. Report max err + index + pass rate; never dump raw arrays. Keep the assert message greppable.
+```python
+def test_logp_vs_reference(fast, ref_smiles):
+    """Crippen logP vs published values; --fast = every 10th molecule."""
+    data = ref_smiles[::10] if fast else ref_smiles
+    errs = [abs(MolLogP(Chem.MolFromSmiles(s)) - p) for s, p in data]
+    i, n = errs.index(max(errs)), sum(e < 0.1 for e in errs)
+    assert n == len(errs), f"logp: max {max(errs):.3f} at idx {i} ({n}/{len(errs)} pass<0.1)"
+```
+
 ### Type aliases
 Centralize complex aliases in `src/{{PKG}}/typeshed.py`:
 ```python
