@@ -1,0 +1,17 @@
+
+
+# --- Oracle reference data ---
+from pathlib import Path
+import numpy as np
+
+REF_DATA = Path(__file__).resolve().parent.parent / "{{REF_DATA_PATH}}"
+
+
+@pytest.fixture
+def reference(request):
+    """Load oracle reference from REF_DATA / <name>.npz; default 'fiducial'.
+
+    Override per-test with `@pytest.mark.parametrize('reference', ['highT'], indirect=True)`.
+    """
+    name = getattr(request, "param", "fiducial")
+    return dict(np.load(REF_DATA / f"{name}.npz", allow_pickle=False))

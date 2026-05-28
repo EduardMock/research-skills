@@ -1,0 +1,18 @@
+
+## Oracle pattern
+
+- **Oracle:** {{ORACLE}}
+- **Used for:** {{ORACLE_PURPOSE}}
+- **Reference data:** `{{REF_DATA_PATH}}`
+
+**Test harness is the primary deliverable.** When you have a known-good reference, what you are actually building is a verifier — a tool that proves your code matches the oracle. Generate reference data at many parameter points (fiducial plus perturbations along each axis you vary). Write sharp verifiers that report exactly which quantity, at which input, by how much. The implementation will fall into place once the harness is solid.
+
+**Bisect the pipeline.** When a final result disagrees, do not stare at the final equations. Compare intermediate quantities at each stage of the pipeline against oracle intermediates — find the first module where things diverge. Fix there; downstream improves automatically.
+
+**Test at many parameter points.** A bug that cancels at the default parameters will surface elsewhere. Include perturbations along every axis the project varies (e.g. high/low temperature, swapped functional, alternate basis set, modified ligand).
+
+**Compare against a second reference when possible.** If two independent oracles agree and your code disagrees, the bug is yours. If they disagree, you have learned something about the oracles themselves — record it in `docs/progress.md`.
+
+**Module docstrings name the reference they mirror.** Cite `file:line` in the oracle's source, or paper + equation number, in the docstring of every function that implements a referenced equation. This makes term-by-term review possible — the commonest way to find a missing factor.
+
+**Never add fudge factors.** A small error is a missing term, not a constant to absorb. If you are tempted to multiply by 1.002 to pass a test, the discrepancy is not yet isolated. Bisect further upstream.

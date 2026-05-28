@@ -1,0 +1,14 @@
+
+
+# --- Systems under investigation ---
+# Edit this list as the project's scope evolves. `identifier` is whatever
+# uniquely names the system: a SMILES, an InChI, a path under data/.
+SYSTEMS = [
+{{SYSTEMS_LIST}}
+]
+
+
+@pytest.fixture(params=SYSTEMS, ids=lambda s: s[0])
+def system(request):
+    """Yields each system in turn; tests using `system` run once per entry."""
+    return request.param  # (name, identifier, description)

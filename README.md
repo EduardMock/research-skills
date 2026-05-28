@@ -22,6 +22,7 @@ Browse the wider skills ecosystem at [skills.sh](https://skills.sh/).
 
 | Skill | What it does |
 |---|---|
+| [`chem-code-kickstart`](skills/chem-code-kickstart/SKILL.md) | Scaffold a comp-chem research repo: tight `CLAUDE.md` (goals, agent-coding principles adapted from the [`clax`](https://github.com/smsharma/clax) lessons, coding style, naming, project structure, docs/specs location) plus minimal `src/`, `tests/` with `--fast` mode, `env.yml`, `pyproject.toml`, `.gitignore`. Enforces brevity; hands off to `superpowers:brainstorming` to pick the next skill. |
 | [`fast-smiles`](skills/fast-smiles/SKILL.md) | Targeted edits on an existing SMILES from a natural-language instruction. Maps NL → RDKit (`RWMol`, reaction SMARTS, `ReplaceSubstructs`) and enforces a verification ritual so silent misinterpretations don't leak downstream. |
 | [`nglview`](skills/nglview/SKILL.md) | Interactive 3D molecular visualization in Jupyter — small molecules, catalysts, organometallics, QM/MM trajectories. Reads Amber, Gromacs, CHARMM, OpenMM; representations tuned for small molecules (ball-stick, licorice, spacefill). |
 | [`g-xtb`](skills/g-xtb/SKILL.md) | Fast semi-empirical QM (energies, geometry opt, Hessians, gaps, charges, bond orders) on any element Z=1–103. Approximates ωB97M-V/def2-TZVPPD without DFT-grade compute. Includes a dependency-free Python wrapper. |

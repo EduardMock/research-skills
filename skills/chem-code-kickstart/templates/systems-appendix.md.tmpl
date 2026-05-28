@@ -1,0 +1,20 @@
+
+## Systems under investigation
+
+This project studies the following chemical systems. They are registered as pytest fixtures in `tests/conftest.py` — every test that takes `system` runs once per entry.
+
+| Name | Identifier | Description |
+|------|------------|-------------|
+{{SYSTEMS_TABLE}}
+
+### Adding a new system
+1. Add a `(name, identifier, description)` tuple to `SYSTEMS` in `tests/conftest.py`.
+2. Add a matching row to the table above so a reader sees the scope without reading code.
+3. If the system is large (full protein, MD trajectory, multi-MB dataset), store the file under `data/` and use the path as the identifier; otherwise inline the SMILES, InChI, or other compact key.
+
+### Sanity checks every system should pass
+- **Loadable** — no NaN coordinates, valid SMILES, valid topology, expected atom count.
+- **Conserving** — total charge and mass survive every pipeline stage.
+- **Expected substructures** — when the project depends on a functional group being present (a coordinated metal, a terminal alkyne, a specific binding pocket), assert it with a SMARTS or substructure match.
+
+The systems list is the source of truth; tests are the safety net.
