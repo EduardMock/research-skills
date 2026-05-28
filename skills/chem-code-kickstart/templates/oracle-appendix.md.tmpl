@@ -2,6 +2,7 @@
 ## Oracle pattern
 
 - **Oracle:** {{ORACLE}}
+- **Used for:** {{ORACLE_PURPOSE}}
 - **Reference data:** `{{REF_DATA_PATH}}`
 
 **Test harness is the primary deliverable.** When you have a known-good reference, what you are actually building is a verifier — a tool that proves your code matches the oracle. Generate reference data at many parameter points (fiducial plus perturbations along each axis you vary). Write sharp verifiers that report exactly which quantity, at which input, by how much. The implementation will fall into place once the harness is solid.

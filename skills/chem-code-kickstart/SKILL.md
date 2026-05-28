@@ -35,18 +35,36 @@ Read `pwd`, `ls`, `git status`. Classify:
 | Has code, no CLAUDE.md | Python files or `pyproject.toml`, no `CLAUDE.md` | Retrofit — never touch existing `src/` |
 | Has CLAUDE.md | `CLAUDE.md` present | Ask before any change. Default: skip. |
 
-### 2. Project Q&A (four short questions)
+### 2. Project Q&A
 
 1. **Project goal** — 1–2 sentences. What is this trying to learn or produce?
 2. **Package name** — defaults to cwd basename, `snake_case`.
-3. **Oracle** — is there a known-good reference (DFT/CCSD(T) data, experimental, higher-level method, published benchmark)? If yes: what is it, and where will reference data live (e.g. `data/ref/`)?
-4. **Notebooks central?** — yes/no. The `notebooks/` directory is always created; this answer only affects one line in `CLAUDE.md` and the post-handoff skill suggestions.
+3. **Replicating a reference?** Y/N. Yes when the project reimplements a method, reproduces published results, or benchmarks against a known-good source (DFT/CCSD(T) data, experimental measurements, a higher-level method, a paper). If yes, follow up:
+   - What is the oracle? (e.g. `DFT/wB97X-D/def2-TZVPP`, `Janet 2024 benchmark set`)
+   - What is it used for *in this project*? One sentence — e.g. "validating xTB rankings against DFT for the top 20 catalysts".
+   - Where will reference data live? (e.g. `data/ref/`)
+4. **Investigating specific systems?** Y/N. Yes when the project studies named chemical entities — catalysts, complexes, target proteins, reactions. If yes, collect each as `(name, identifier, description)`. `identifier` is a SMILES, an InChI, or a path under `data/`.
+5. **Notebooks central?** Y/N. The `notebooks/` directory is always created; this answer only affects one line in `CLAUDE.md` and the post-handoff skill suggestions.
 
-Capture as `{{PROJECT_NAME}}`, `{{PROJECT_GOAL}}`, `{{PKG}}`, `{{ORACLE}}`, `{{REF_DATA_PATH}}`, `{{DATE}}`.
+Replicate and investigate are not exclusive — a project that screens specific catalysts *and* validates against DFT benchmarks gets both appendices.
+
+Capture as `{{PROJECT_NAME}}`, `{{PROJECT_GOAL}}`, `{{PKG}}`, `{{ORACLE}}`, `{{ORACLE_PURPOSE}}`, `{{REF_DATA_PATH}}`, `{{SYSTEMS_TABLE}}`, `{{SYSTEMS_LIST}}`, `{{DATE}}`.
+
+`{{SYSTEMS_TABLE}}` renders one row per system in Markdown:
+```
+| ni_catalyst_a | `CC(=O)O[Ni](OC(C)=O)` | Ni(II) acetate baseline |
+| ni_catalyst_b | `data/proteins/2abc.pdb` | apo binding pocket |
+```
+
+`{{SYSTEMS_LIST}}` renders the same data as Python tuples for `conftest.py`:
+```
+    ("ni_catalyst_a", "CC(=O)O[Ni](OC(C)=O)", "Ni(II) acetate baseline"),
+    ("ni_catalyst_b", "data/proteins/2abc.pdb", "apo binding pocket"),
+```
 
 ### 3. Materialize files
 
-For each template in `templates/`, substitute placeholders and `Write` the result. Apply the **overwrite rules** in step 4. Files to create:
+For each template in `templates/`, substitute placeholders and `Write` the result. Apply the **overwrite rules** in step 4. Always-created files:
 
 ```
 CLAUDE.md
@@ -65,7 +83,16 @@ pyproject.toml
 .gitignore
 ```
 
-If `{{ORACLE}}` is non-empty, append `templates/oracle-appendix.md.tmpl` (with substitution) to `CLAUDE.md` before writing.
+**Conditional appendices — apply each independently:**
+
+| Condition | CLAUDE.md | tests/conftest.py |
+|---|---|---|
+| Replicating a reference | append `oracle-appendix.md.tmpl` | append `conftest-oracle.py.tmpl` |
+| Investigating systems | append `systems-appendix.md.tmpl` | append `conftest-systems.py.tmpl` |
+| Both | both appendices, in this order | both appendices, in this order |
+| Neither | nothing extra | nothing extra |
+
+If replicating, also create the reference-data directory at `{{REF_DATA_PATH}}` (with a `.gitkeep` if empty) so the path the appendix references actually exists.
 
 ### 4. Per-file overwrite rules
 
@@ -83,7 +110,8 @@ If `{{ORACLE}}` is non-empty, append `templates/oracle-appendix.md.tmpl` (with s
 ### 5. Verify
 
 - No `{{...}}` placeholder leaks through into any written file.
-- The duplicated `## Oracle pattern` heading does not appear twice (only one appendix appended).
+- Each appendix heading appears at most once (`## Oracle pattern`, `## Systems under investigation`) — no accidental double-append.
+- `tests/conftest.py` parses as Python (e.g. `python -c "import ast; ast.parse(open('tests/conftest.py').read())"`).
 - Report what was created via `git status`.
 
 ### 6. Hand off — mandatory final step
@@ -114,11 +142,14 @@ All templates live in `templates/` next to this file. The placeholder syntax is 
 
 | Template | Writes to | Notes |
 |---|---|---|
-| `CLAUDE.md.tmpl` | `CLAUDE.md` | Core artifact. Append `oracle-appendix.md.tmpl` if oracle named. |
-| `progress.md.tmpl` | `docs/progress.md` | 3-line stub. Leave alone if file exists. |
+| `CLAUDE.md.tmpl` | `CLAUDE.md` | Core artifact. Append `oracle-appendix.md.tmpl` and/or `systems-appendix.md.tmpl` as the Q&A dictates. |
+| `progress.md.tmpl` | `docs/progress.md` | Stub with hint comments. Leave alone if file exists. |
 | `env.yml.tmpl` | `env.yml` | Project-local micromamba (`.venv-mm`). |
 | `pyproject.toml.tmpl` | `pyproject.toml` | Minimal: `[project]`, `[tool.ruff]`, `[tool.pytest.ini_options]`. |
-| `conftest.py.tmpl` | `tests/conftest.py` | `--fast` fixture. |
+| `conftest.py.tmpl` | `tests/conftest.py` | `--fast` fixture base. Append oracle/systems blocks below. |
+| `conftest-oracle.py.tmpl` | appended to `tests/conftest.py` | When replicating. Adds `REF_DATA` path and `reference` fixture. |
+| `conftest-systems.py.tmpl` | appended to `tests/conftest.py` | When investigating. Adds `SYSTEMS` list and parametrised `system` fixture. |
 | `gitignore.tmpl` | `.gitignore` | Comp-chem junk + venv + outputs. |
 | `typeshed.py.tmpl` | `src/{{PKG}}/typeshed.py` | Empty stub with one example alias commented. |
-| `oracle-appendix.md.tmpl` | appended to `CLAUDE.md` | Only when oracle is named. |
+| `oracle-appendix.md.tmpl` | appended to `CLAUDE.md` | When replicating. Names oracle, purpose, reference-data path; the oracle workflow. |
+| `systems-appendix.md.tmpl` | appended to `CLAUDE.md` | When investigating. Table of systems, how to add new ones, sanity-check checklist. |
