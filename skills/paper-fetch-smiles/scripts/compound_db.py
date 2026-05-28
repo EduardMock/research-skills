@@ -113,6 +113,7 @@ def build_compound_db(
     tmqml_sha: str = "main",
     rate_limit: float = 4.0,
     force_refetch: bool = False,
+    expected_electronic_structure: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Resolve a list of paper-extracted compound rows into a normalized DB.
 
@@ -133,11 +134,17 @@ def build_compound_db(
         PubChem requests per second (shared throttle across all rows).
     force_refetch : bool
         Bypass the PubChem cache.
+    expected_electronic_structure : dict, optional
+        Hand-authored electronic-structure annotations for metal species
+        (oxidation_state, d_count, geometry_class, spin_state). Carried
+        through to the output unchanged. Pass ``{}`` for purely organic
+        papers — the key is always present in the output.
 
     Returns
     -------
     dict
-        ``{"metadata": {...}, "compounds": [record, ...]}``.
+        ``{"metadata": {...}, "expected_electronic_structure": {...},
+        "compounds": [record, ...]}``.
     """
     cache_dir_p = Path(cache_dir)
     cache_dir_p.mkdir(parents=True, exist_ok=True)
@@ -185,7 +192,12 @@ def build_compound_db(
         "cache_dir": str(cache_dir_p),
         "review_enabled": bool(review),
     }
-    return {"metadata": metadata, "compounds": compounds}
+    ees = expected_electronic_structure if expected_electronic_structure is not None else {}
+    return {
+        "metadata": metadata,
+        "expected_electronic_structure": ees,
+        "compounds": compounds,
+    }
 
 
 __all__ = ["build_compound_db"]

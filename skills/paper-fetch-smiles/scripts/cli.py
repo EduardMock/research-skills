@@ -32,17 +32,26 @@ def _cmd_build(args: argparse.Namespace) -> int:
         print(f"input not found: {input_path}", file=sys.stderr)
         return 1
     try:
-        rows = json.loads(input_path.read_text())
+        payload = json.loads(input_path.read_text())
     except json.JSONDecodeError as e:
         print(f"input is not valid JSON: {e}", file=sys.stderr)
         return 1
-    if not isinstance(rows, list):
-        # Allow {"compounds": [...]} for convenience.
-        if isinstance(rows, dict) and isinstance(rows.get("compounds"), list):
-            rows = rows["compounds"]
-        else:
-            print("input must be a JSON list of rows", file=sys.stderr)
-            return 1
+    ees: dict[str, Any] = {}
+    if isinstance(payload, list):
+        rows = payload
+    elif isinstance(payload, dict) and isinstance(payload.get("compounds"), list):
+        # Ground-truth shape: {"compounds": [...], "expected_electronic_structure": {...}}
+        # In-place re-runs (input == output path) also land here.
+        rows = payload["compounds"]
+        if isinstance(payload.get("expected_electronic_structure"), dict):
+            ees = payload["expected_electronic_structure"]
+    else:
+        print(
+            "input must be a JSON list of rows or {compounds: [...], "
+            "expected_electronic_structure: {...}} dict",
+            file=sys.stderr,
+        )
+        return 1
 
     db = build_compound_db(
         rows,
@@ -52,6 +61,7 @@ def _cmd_build(args: argparse.Namespace) -> int:
         tmqml_sha=args.tmqml_sha,
         rate_limit=args.rate_limit,
         force_refetch=args.force_refetch,
+        expected_electronic_structure=ees,
     )
 
     out_path = Path(args.output)
