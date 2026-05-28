@@ -1,6 +1,6 @@
 ---
 name: authoring-smiles
-description: Use when writing a SMILES by hand from a paper figure, 2D sketch, or chemical description. Covers construction order, readable-SMILES conventions, substitution-pattern idioms for aromatic cores from synthesis papers, stereochemistry, and organometallic/carbene quirks. For parsing/descriptors/similarity use the rdkit skill; for fetching known compounds use pubchem-api.
+description: Use when writing a SMILES by hand from a paper figure, 2D sketch, or chemical description. Covers construction order, readable-SMILES conventions, substitution-pattern idioms for aromatic cores from synthesis papers, and organometallic/carbene quirks. Deliberately omits stereochemistry — always output flat SMILES with no `/`, `\`, or `@`, because stereo markers break downstream structure handling. For parsing/descriptors/similarity use the rdkit skill; for fetching known compounds use pubchem-api.
 ---
 
 # Authoring SMILES
@@ -34,14 +34,13 @@ A valid SMILES is necessary but not sufficient — you want one a reviewer can *
 4. **Ring closures** — matching digits; `%10+` for two-digit
 5. **Disconnections** — `.` for separate components
 
-Get the skeleton right first. Add stereo and charges last, only if the paper specifies them.
+Get the skeleton right first. Add charges last, only if the paper specifies them. **Never add stereochemistry** (see below) — the skeleton is the whole output.
 
 ## Picking a starting atom (readability convention)
 
 - **One end of the longest chain** by default
 - **Aromatic core with one unique substituent**: start on the ring carbon bearing that substituent (`Xc1ccccc1…`)
 - **Catalysts**: start at the metal so the coordination sphere reads first
-- **Stereocenters**: use `[C@H]` / `[C@@H]` and order neighbours to match the wedge drawing
 
 The choice is arbitrary — software canonicalizes. Convention exists so humans can read each other's SMILES without launching RDKit.
 
@@ -54,14 +53,21 @@ The choice is arbitrary — software canonicalizes. Convention exists so humans 
 
 **Red flag:** nesting >3 levels of parens means restart from a different atom.
 
-## Stereochemistry — only when the paper specifies it
+## Stereochemistry — do not encode it
 
-Don't add stereo by habit. A correct skeleton without stereo is better than a wrong stereo.
+**Never emit stereo markers.** The output is always a flat SMILES:
 
-- `A/C=C/B` = **E** (both slashes same direction, "flies apart")
-- `A/C=C\B` = **Z** (opposite directions)
-- `[C@H]` = anticlockwise view from first neighbour; `[C@@H]` = clockwise
-- Neighbour order in `[C@H](a)(b)c` = the order you visit from the wedge drawing
+- No `/` or `\` — double-bond E/Z geometry is omitted (write `C=C`, never `/C=C/` or `/C=C\`)
+- No `@` or `@@` — tetrahedral chirality is omitted (write `C`/`[CH]`, never `[C@H]` / `[C@@H]`)
+
+Stereo annotations break downstream structure handling — RDKit ETKDG embedding, OpenBabel perception, and molSimplify builds all choke on them ("Failed to set stereochemistry as unable to find an available bond"). A flat skeleton is the **required** output even when the paper draws wedges or E/Z geometry; the geometry is recovered later by the 3D build, not carried in the string.
+
+If you start from a SMILES that already carries stereo, strip it before using it:
+
+```python
+from rdkit import Chem
+flat = Chem.MolToSmiles(Chem.MolFromSmiles(smi), isomericSmiles=False)
+```
 
 ## Verification ritual — required after authoring
 
@@ -72,9 +78,9 @@ from rdkit.Chem import Draw, rdMolDescriptors
 mol = Chem.MolFromSmiles(smi)
 assert mol is not None, f"syntax error in {smi}"
 
-print(rdMolDescriptors.CalcMolFormula(mol))   # matches paper formula?
-Draw.MolToImage(mol, size=(400, 400))          # visual check — matches figure?
-print(Chem.MolToSmiles(mol))                   # canonical form for data files
+print(rdMolDescriptors.CalcMolFormula(mol))           # matches paper formula?
+Draw.MolToImage(mol, size=(400, 400))                 # visual check — matches figure?
+print(Chem.MolToSmiles(mol, isomericSmiles=False))    # flat canonical form for data files (no /,\,@)
 ```
 
 For molSimplify: also `mol3D.from_smiles(smi, gen3d=True)` must succeed.
@@ -86,14 +92,14 @@ For molSimplify: also `mol3D.from_smiles(smi, gen3d=True)` must succeed.
 | Mistake | Symptom | Fix |
 |---|---|---|
 | Biggest branch in first parens | Deep nesting | Refactor: small subs first, big chain last |
-| Wrong E/Z | Paper E → drawn Z | Same-direction slashes = trans |
+| Any `/`, `\`, or `@` in the SMILES | Breaks RDKit embed / OpenBabel / molSimplify | Strip stereo: `MolToSmiles(m, isomericSmiles=False)` |
 | Kekulé instead of aromatic | Extra Hs, wrong sanitization | `c1ccccc1` not `C1=CC=CC=C1` |
 | `C` for NHC carbene | RDKit adds 2 H → CH₂ | Use `[C]` |
 | Quat centre missing 4th sub | RDKit adds H, degree 3 | Malonate centre is `C(X)(Y)(Z)W` — count 4 |
 | Explicit Hs for organic atoms | Verbose, harder to read | Let implicit Hs do the work |
 | Ring digit `1` kept open | Parse error or wrong connectivity | After a ring closes, the digit is free to reuse |
 | Two-digit ring without `%` | Rejected by parser | Use `%10`, `%11`, … |
-| Added stereo paper didn't specify | Introduces wrong stereo | Figure silent → SMILES silent |
+| Encoding stereo from a wedge/E-Z drawing | Stereo SMILES break the 3D build | Output is always flat — drop `/`, `\`, `@` |
 
 ## Red flags — STOP and restart
 
@@ -101,6 +107,7 @@ For molSimplify: also `mol3D.from_smiles(smi, gen3d=True)` must succeed.
 - Same ring digit appearing 3+ times on an atom
 - SMILES >100 chars for a molecule <30 heavy atoms
 - You can't read your own SMILES back to the structure without parsing it
+- A `/`, `\`, `@`, or `@@` appears anywhere in your SMILES — strip it; the output must be flat
 - `Chem.MolFromSmiles` returns `None`
 
 ## Reference material
