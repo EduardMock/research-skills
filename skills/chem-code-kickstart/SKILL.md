@@ -82,8 +82,8 @@ If `{{ORACLE}}` is non-empty, append `templates/oracle-appendix.md.tmpl` (with s
 
 ### 5. Verify
 
-- `CLAUDE.md` ≤ 100 lines (≤ 95 without oracle appendix). If over, surface — likely a placeholder bled through or an appendix is duplicated.
 - No `{{...}}` placeholder leaks through into any written file.
+- The duplicated `## Oracle pattern` heading does not appear twice (only one appendix appended).
 - Report what was created via `git status`.
 
 ### 6. Hand off — mandatory final step
@@ -94,11 +94,11 @@ End with this message to the agent (paraphrase OK, intent must hold):
 
 ## Brevity rules (apply to every output)
 
-- One line per principle. No prose padding.
+- No prose padding. Every sentence should add what the reader needs to act.
 - One-line docstrings on generated stubs; two only if essential.
 - Tables instead of paragraphs where the data is comparative.
 - Omit a section entirely if it has no content for *this* project.
-- Generated `CLAUDE.md` target: ≤ 95 lines (≤ 100 with oracle appendix).
+- Principles get the lines they need to explain *what + why + how to apply* — depth over compression, but no fluff.
 - These rules apply to this `SKILL.md` itself.
 
 ## Failure modes — surface, don't paper over

@@ -10,13 +10,23 @@
 4. Update `docs/progress.md` before stopping.
 
 ## Principles
-- Tests first when an oracle exists. Reproduce bugs as failing tests before fixing.
-- Concise test output — max rel err + index + pass rate. No raw arrays.
-- `--fast` mode by default during development. Full suite only before commit.
-- `docs/progress.md` is shared memory. Record failed approaches so they aren't re-attempted.
-- No fudge factors. A 0.2% error is a missing term — trace upstream and fix it.
-- Small commits. One thing per commit. Tests included.
-- Document for the next session: what + why, not how.
+
+**Tests first when an oracle exists.** If there is a known-good reference — published DFT data, experimental measurements, a higher-level method, a benchmark dataset — the test harness is the most valuable artefact you produce. Write the test (what the oracle says) before the implementation. When you find a bug, reproduce it as a failing test before fixing. The harness is what lets you bisect the pipeline when something disagrees.
+
+**Concise test output.** Every line of noisy test output displaces useful context. On success, print at most a few lines. On failure, print: max relative error, the index or input where it occurs, and the overall pass rate — never raw arrays. Verbose diagnostics (full residuals, intermediate fields, dumped trajectories) go to `test_logs/` files, not stdout. Make assert messages greppable so `grep ERROR test_logs/*.log` finds them.
+
+Good: `FAILED test_logp — max err 0.032 at idx 17 (49/50 pass <0.1)`
+Bad:  `FAILED — arrays not equal: [1.83e-4, 1.82e-4, ...] (500 more lines)`
+
+**`--fast` mode by default during development.** The default dev cycle is `pytest -q --fast` after every change; the full suite only before commit. Fast mode runs a deterministic ~10% subsample (every 10th molecule, every 10th frame, 5 of 150 k-modes). It catches the same regressions in seconds instead of minutes, so the iteration loop stays short enough to think in.
+
+**`docs/progress.md` is shared memory.** Each session starts in a fresh context. `docs/progress.md` is how the next session — or the next agent — orients. Update after every meaningful unit of work. Record dated completions (`2026-05-28 background: 25/25`), what's blocked, and especially **failed approaches** (`Tried Tsit5 — too stiff. Switched to Kvaerno5.`) so they aren't re-attempted. Track suite pass rates over time so regressions are visible.
+
+**No fudge factors.** If a test fails with a 0.2% error, there is a missing term — a wrong sign, a wrong factor, a missing summation, a stale index. Find the actual bug. Do not multiply by 1.002 or add a constant offset to make the test pass. If you are tempted, the discrepancy is not yet isolated; bisect further upstream.
+
+**Small commits.** One thing per commit: one function, one module, one bugfix. Each commit passes all existing tests and includes tests for the new code. Refactors go in their own commits, separate from features, so reviewers (and your future self) can understand each change in isolation. Run `pytest -q --fast` before every commit; never "fix it later."
+
+**Document for the next session, not for users.** Documentation is a coordination mechanism, not a deliverable. Every module docstring explains: what it does, what it takes and returns (types and shapes), any non-obvious numerical choices and why, and known limitations. When the project has an oracle, name the reference function or equation each module mirrors (`file.c:5070`, paper Eq. 12) so terms can be reviewed against the source.
 
 ## Claude must not
 - Delete files without permission.
@@ -24,11 +34,20 @@
 - Add dependencies without scientific justification.
 
 ## Coding style
-- Pure functions where reasonable.
-- Every public function has full type hints including return type.
-- Units explicit (Å, kcal/mol, e). Random seeds fixed.
-- SMILES flat unless stereo is the point.
-- Every line earns its place.
+
+**Pure functions where reasonable.** No mutable globals, no hidden side effects. Pure functions compose, test cleanly, and parallelise trivially. Exceptions exist (caches, parallel I/O) but should be named explicitly, not hidden inside an otherwise pure-looking call.
+
+**Full type hints on public functions, including return type.** The signature is the cheapest, most-read documentation in the codebase; missing return types make every caller speculate. Centralise complex aliases in `src/{{PKG}}/typeshed.py` so consumers can `from {{PKG}}.typeshed import …` instead of duplicating definitions.
+
+**Bundle results as frozen dataclasses.** Not loose tuples or dicts. `@dataclass(frozen=True)` (or `pydantic.BaseModel(frozen=True)`) makes results self-documenting — every consumer sees field names and types — and kills the "which index was energy again?" bug.
+
+**Implement modules in dependency order.** Each new module should depend only on those already written. List the order in `docs/specs/` or near the top of `DESIGN.md` if you have one. Build bottom-up; when you find yourself wanting to import from a not-yet-written module, write that one first.
+
+**Units explicit.** Embed units in names (`energy_kcal_mol`, `r_angstrom`, `t_fs`) or in the dataclass field. Convert at boundaries, never in the middle. Random seeds are fixed in any script that draws randomness, and the seed is stored alongside the output.
+
+**SMILES flat unless stereo is the point.** Strip `/`, `\`, `@` for downstream structure handling; reintroduce stereo only at the step that needs it. See the `authoring-smiles` skill.
+
+**Every line earns its place.** No prose padding. If a comment restates the code, delete the comment or rewrite the code. Match the surrounding idiom rather than inventing a new one.
 
 ### Docstring — one line, two if essential
 ```python
@@ -37,14 +56,17 @@ def water_bridge_count(traj: Trajectory, cutoff: float = 3.5) -> int:
 ```
 
 ### Test — `--fast` subsample + concise output
-Use the `fast` fixture from `tests/conftest.py`. Report max err + index + pass rate; never dump raw arrays. Keep the assert message greppable.
+Use the `fast` fixture from `tests/conftest.py`. Report max err + index + pass rate, never raw arrays. Make the assert message greppable.
 ```python
 def test_logp_vs_reference(fast, ref_smiles):
     """Crippen logP vs published values; --fast = every 10th molecule."""
     data = ref_smiles[::10] if fast else ref_smiles
     errs = [abs(MolLogP(Chem.MolFromSmiles(s)) - p) for s, p in data]
-    i, n = errs.index(max(errs)), sum(e < 0.1 for e in errs)
-    assert n == len(errs), f"logp: max {max(errs):.3f} at idx {i} ({n}/{len(errs)} pass<0.1)"
+    n_pass = sum(e < 0.1 for e in errs)
+    assert n_pass == len(errs), (
+        f"logp: max err {max(errs):.3f} at idx {errs.index(max(errs))} "
+        f"({n_pass}/{len(errs)} pass <0.1)"
+    )
 ```
 
 ### Type aliases
@@ -65,6 +87,8 @@ ResultMap: TypeAlias = dict[int, "IFP"]
 | type aliases      | `PascalCase`  | `ResidueKey`, `PathLike`           |
 
 ## Project structure
+
+
 ```
 {{PKG}}/
 ├── CLAUDE.md
@@ -86,6 +110,6 @@ ResultMap: TypeAlias = dict[int, "IFP"]
 ```
 
 ## Docs & specs
-- `docs/specs/` — design specs, one per major decision.
+- `docs/specs/` — design specs, one per major decision and system information if chemistry is involved.
 - `docs/progress.md` — shared memory log; update after every unit of work.
 - This file — principles. Edit only when principles change.
