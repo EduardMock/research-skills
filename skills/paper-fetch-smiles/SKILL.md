@@ -198,7 +198,7 @@ The output of this reasoning is two things: (a) a confidence-justified product S
 **REQUIRED SUB-SKILL:** Use `authoring-smiles` for every fallback_smiles. The skill's "five-rule construction order" and verification ritual apply unchanged.
 
 For this skill specifically:
-- **Skeleton first, stereo last.** Don't add `[C@H]` unless the paper explicitly draws wedges for that compound. A correct flat SMILES beats a wrong stereo SMILES.
+- **No stereochemistry, ever.** Every `fallback_smiles` must be flat — no `/`, no `\`, no `@` / `@@` / `[C@H]`. Stereo markers break downstream structure handling (RDKit ETKDG embedding, OpenBabel perception, molSimplify builds), so omit them even when the paper explicitly draws wedges or E/Z geometry. The geometry is recovered by the 3D build, not carried in the string. If you start from a stereo-bearing SMILES, strip it: `Chem.MolToSmiles(Chem.MolFromSmiles(smi), isomericSmiles=False)`.
 - **Disconnected components** for ionic and weakly-bound complexes: `[K+].CC(C)(C)[O-]` for KO-t-Bu; `[Ni].C1CC=CCCC=C1.C1CC=CCCC=C1` for Ni(COD)2 if the connectivity to Ni isn't drawn explicitly in the paper.
 
 **For organometallic intermediates** drawn in a mechanism (`paper_id` is a numbered metallacycle):
@@ -251,8 +251,11 @@ When the paper draws an intermediate without specifying the spectator-ligand cou
    ```python
    from rdkit import Chem
    for row in PAPER_COMPOUND_TABLE:
-       mol = Chem.MolFromSmiles(row["fallback_smiles"], sanitize=False)
+       smi = row["fallback_smiles"]
+       mol = Chem.MolFromSmiles(smi, sanitize=False)
        assert mol is not None, row["paper_id"]
+       # flat-SMILES guard: no stereo markers allowed
+       assert not ({"/", "\\", "@"} & set(smi)), f"stereo in {row['paper_id']}: {smi}"
    ```
    `sanitize=False` for organometallic rings; switch to `sanitize=True` for purely organic compounds. (The resolver also runs an RDKit review pass per row when invoked with `--review`.)
 7. Build `EXPECTED_ELECTRONIC_STRUCTURE` for every metal species (precursor, adducts, on/off-cycle metallacycles).
@@ -294,6 +297,7 @@ When the paper draws an intermediate without specifying the spectator-ligand cou
     - Every numeric paper_id from 1 to max is present (no gaps).
     - Every metal-bearing row has a corresponding `EXPECTED_ELECTRONIC_STRUCTURE` entry.
     - Every `fallback_smiles` parses with RDKit.
+    - Every `fallback_smiles` is flat — no `/`, `\`, or `@` anywhere.
     - All three output files (`compounds.py`, `compounds.json`, `compounds.png`) exist in the output directory.
     - `compounds.json` `metadata.n_compounds == len(PAPER_COMPOUND_TABLE)` and `n_unresolved` is acceptable (0 ideal; non-zero rows must have a usable `fallback_smiles`).
 
@@ -309,7 +313,7 @@ When the paper draws an intermediate without specifying the spectator-ligand cou
 | R = Me ⇒ writes only one compound when the table says R = Me, Et, iPr | Each R-value gets its own row IF it has its own bold number. |
 | Confuses substrate `1` (R=Me diyne) with product `10` (R=Me pyrone) — both have R=Me but different scaffolds | Treat the paper_id as the primary key, not the R-value. |
 | Skips IMes because IPr was the "main" ligand | Both are charged to flasks (Table footer, screening discussion) — both included. |
-| Adds stereochemistry without paper support | Skeleton-only is correct unless wedges are drawn. |
+| Any stereo marker (`/`, `\`, `@`) in a fallback_smiles | Output is always flat — stereo breaks the downstream 3D build, even when the paper draws wedges. |
 | Puts R at the wrong ring position on an asymmetric-substrate product (e.g., 4-iPr vs. 1-iPr pyrone) | Educt → product reasoning: enumerate all regiochemical outcomes from the substrates, then map the paper's claim onto one. Use `fast-smiles` to sketch the alternative. |
 
 ## Red flags — STOP and re-check
@@ -319,6 +323,7 @@ When the paper draws an intermediate without specifying the spectator-ligand cou
 - About to add a row whose only source is the references section.
 - About to skip a Scheme because "it's just the mechanism."
 - About to include a solvent or bulk reagent.
+- About to write a `/`, `\`, or `@` in a `fallback_smiles` — strip it; output must be flat.
 - About to add a row for an **adduct** of two existing rows (e.g., Ni(IPr)2 when Ni(COD)2 and IPr are already rows). The adduct goes in `EXPECTED_ELECTRONIC_STRUCTURE`, not the table.
 - About to add a row from a footnote whose phrasing is "alternatively …" or "in lieu of … can also be used" — the alternative reagents are NOT compounds, the named ligand they generate IS.
 - About to write a product SMILES with a substituent at a ring position you have NOT justified by tracing atoms from the substrate (educt → product reasoning skipped).
