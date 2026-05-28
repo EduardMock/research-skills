@@ -1,0 +1,8 @@
+
+## Oracle pattern
+- **Oracle:** {{ORACLE}}
+- **Reference data:** `{{REF_DATA_PATH}}`
+- When a result disagrees, bisect the pipeline upstream — fix the first diverging module.
+- Test at many parameter points, not just the fiducial case.
+- Compare against a second reference when possible; if both agree and we don't, the bug is ours.
+- Never add fudge factors. A small error is a missing term, not a constant to absorb.

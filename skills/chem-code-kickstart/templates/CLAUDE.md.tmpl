@@ -1,0 +1,80 @@
+# {{PROJECT_NAME}}
+
+## Project goals
+{{PROJECT_GOAL}}
+
+## Orient (read this first each session)
+1. Read `docs/progress.md`.
+2. Run `pytest -q --fast`.
+3. Pick the next failing test or unchecked item.
+4. Update `docs/progress.md` before stopping.
+
+## Principles
+- Tests first when an oracle exists. Reproduce bugs as failing tests before fixing.
+- Concise test output — max rel err + index + pass rate. No raw arrays.
+- `--fast` mode by default during development. Full suite only before commit.
+- `docs/progress.md` is shared memory. Record failed approaches so they aren't re-attempted.
+- No fudge factors. A 0.2% error is a missing term — trace upstream and fix it.
+- Small commits. One thing per commit. Tests included.
+- Document for the next session: what + why, not how.
+
+## Claude must not
+- Delete files without permission.
+- Create files over 500 lines.
+- Add dependencies without scientific justification.
+
+## Coding style
+- Pure functions where reasonable.
+- Every public function has full type hints including return type.
+- Units explicit (Å, kcal/mol, e). Random seeds fixed.
+- SMILES flat unless stereo is the point.
+- Every line earns its place.
+
+### Docstring — one line, two if essential
+```python
+def water_bridge_count(traj: Trajectory, cutoff: float = 3.5) -> int:
+    """Count water bridges between ligand and protein within `cutoff` Å."""
+```
+
+### Type aliases
+Centralize complex aliases in `src/{{PKG}}/typeshed.py`:
+```python
+from typing import TypeAlias
+ResultMap: TypeAlias = dict[int, "IFP"]
+```
+
+### Naming
+| Thing             | Convention    | Example                            |
+| ----------------- | ------------- | ---------------------------------- |
+| modules/packages  | `snake_case`  | `water_bridge.py`                  |
+| classes           | `PascalCase`  | `ResidueGroup`, `HBAcceptor`       |
+| functions/methods | `snake_case`  | `get_residues_near_ligand`         |
+| private           | `_leading`    | `_invert_metadata`                 |
+| constants         | `UPPER_SNAKE` | `DEFAULT_INTERACTIONS`, `MAX_JOBS` |
+| type aliases      | `PascalCase`  | `ResidueKey`, `PathLike`           |
+
+## Project structure
+```
+{{PKG}}/
+├── CLAUDE.md
+├── README.md
+├── pyproject.toml
+├── env.yml                # project-local micromamba (.venv-mm)
+├── .gitignore
+├── src/{{PKG}}/           # importable code
+│   ├── __init__.py
+│   └── typeshed.py        # type aliases
+├── tests/                 # pytest, --fast mode, concise output
+├── scripts/               # batch jobs
+├── data/                  # raw inputs (large → gitignored)
+├── outputs/               # results (gitignored)
+├── notebooks/             # exploration (see jupyter-notebook skill)
+└── docs/
+    ├── specs/             # design specs, one per major decision
+    └── progress.md        # shared memory log
+```
+
+## Docs & specs
+- `docs/specs/` — design specs, one per major decision.
+- `docs/progress.md` — shared memory log; update after every unit of work.
+- This file — principles. Edit only when principles change.

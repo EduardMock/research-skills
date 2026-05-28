@@ -1,0 +1,15 @@
+"""Pytest config: --fast subsample mode."""
+import pytest
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--fast", action="store_true", default=False,
+        help="Run a deterministic ~10%% subsample for fast iteration.",
+    )
+
+
+@pytest.fixture
+def fast(request):
+    """True when --fast was passed; use to subsample data inside a test."""
+    return request.config.getoption("--fast")
