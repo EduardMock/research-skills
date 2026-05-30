@@ -84,13 +84,15 @@ Draw.MolToImage(mol, size=(500, 400))
 
 ---
 
-## Example 2: Ethyl (E)-cinnamate
+## Example 2: Ethyl (E)-cinnamate — and why the (E) is dropped
 
 **Paper description:** ethyl ester of (E)-cinnamic acid. Structure: PhCH=CH-C(=O)-OEt, E geometry at the C=C.
 
+The paper draws an (E) double bond, but **we do not encode it.** Stereo markers (`/`, `\`, `@`) break downstream structure handling, so the output is a flat skeleton — the (E) geometry is recovered by the 3D build, not carried in the string.
+
 ### Step 1: scaffold
 
-Three pieces: phenyl − (E)-vinyl − ester (CO₂Et).
+Three pieces: phenyl − vinyl − ester (CO₂Et).
 
 ### Step 2: choose starting atom
 
@@ -98,36 +100,33 @@ Two natural starts:
 - From the phenyl: reads as "phenyl, vinyl, ester"
 - From the ester: reads as "ethyl ester of cinnamic acid"
 
-Either works. Let's go from the phenyl so the stereochemistry sits in the middle.
+Either works. Let's write from the ester end (reads as "ethyl ester of cinnamic acid"), which places the phenyl at the end of the string.
 
 ### Step 3: traversal
 
 Monosubstituted benzene has no positional distinction — `Xc1ccccc1` and `c1ccc(X)cc1` both describe phenyl-X. Both parse to the same molecule. Pick whichever traversal reads better for the surrounding context.
 
-Here we'll write from the ester end (reads as "ethyl ester of cinnamic acid"), which places the phenyl at the end of the string: `CCOC(=O)/C=C/c1ccccc1`.
+### Step 4: the double bond — plain `C=C`, no slashes
 
-### Step 4: E geometry
-
-E-alkene → same-direction slashes around `=`: `/C=C/`
+The C=C is written as a bare double bond. Do **not** add `/C=C/` (E) or `/C=C\` (Z) — geometry is omitted by policy.
 
 ### Step 5: compose
 
 ```
-CCOC(=O)/C=C/c1ccccc1
+CCOC(=O)C=Cc1ccccc1
 ```
 
-Reads naturally: ethyl-O-carbonyl-vinyl(E)-phenyl.
+Reads naturally: ethyl-O-carbonyl-vinyl-phenyl.
 
 ### Step 6: verify
 
 ```python
-smi = "CCOC(=O)/C=C/c1ccccc1"
+smi = "CCOC(=O)C=Cc1ccccc1"
 mol = Chem.MolFromSmiles(smi)
-print(rdMolDescriptors.CalcMolFormula(mol))   # C11H12O2
-# Check E geometry
-for bond in mol.GetBonds():
-    if bond.GetBondType() == Chem.BondType.DOUBLE and bond.GetStereo() != Chem.BondStereo.STEREONONE:
-        print(bond.GetStereo())  # STEREOE expected
+print(rdMolDescriptors.CalcMolFormula(mol))            # C11H12O2
+# Guard: the SMILES must be flat — no stereo markers
+assert "/" not in smi and "\\" not in smi and "@" not in smi
+print(Chem.MolToSmiles(mol, isomericSmiles=False))     # flat canonical form
 ```
 
 ---
