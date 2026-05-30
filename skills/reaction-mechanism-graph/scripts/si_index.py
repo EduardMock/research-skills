@@ -68,7 +68,19 @@ from .mechanism import (
     MechanismInput, atom_summary, derive_neighbours, load_mechanism,
     mass_balance_check,
 )
-from .si_xyz import sanitize
+
+
+def sanitize(label: str) -> str:
+    """Map a paper label to a filesystem-safe stem — kept byte-identical to
+    ``si-xyz-extract``'s ``si_xyz.sanitize`` so .xyz stems written there match
+    the labels resolved here (the two skills share this convention by contract,
+    not by import). Collapses ASCII ``'`` and Unicode ``’`` to ``p``."""
+    return (label.replace("(", "")
+                 .replace(")", "")
+                 .replace("=", "")
+                 .replace(" ", "")
+                 .replace("'", "p")
+                 .replace("’", "p"))
 
 
 class IndexEntry(BaseModel):

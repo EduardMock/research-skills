@@ -104,10 +104,18 @@ def _resolve_one(
     return merged
 
 
+def _default_dataset_cache() -> Path:
+    """Persistent home for large, regeneratable reference datasets (tmQMg-L's
+    ~19 MB CSV). Lives under ~/.cache — sandbox-writable and OUT of the project
+    tree, so it survives across runs without cluttering the working copy."""
+    return Path.home() / ".cache" / "chem-db-lookup"
+
+
 def build_compound_db(
     rows: Iterable[dict[str, Any]],
     *,
     cache_dir: str | Path = ".compound_cache",
+    tmqml_cache_dir: str | Path | None = None,
     match_tmqml: bool = False,
     review: bool = False,
     tmqml_sha: str = "main",
@@ -123,7 +131,13 @@ def build_compound_db(
         Each row needs at least ``name`` (or whatever ``query_type`` points at).
         Optional: ``paper_id``, ``role``, ``fallback_smiles``, ``query_type``.
     cache_dir : str or Path
-        Directory for PubChem and tmQMg-L caches. Created if missing.
+        Ephemeral per-query cache (the PubChem response cache). The CLI passes a
+        temp dir here and deletes it after the run — nothing is left in the
+        project tree.
+    tmqml_cache_dir : str or Path, optional
+        Persistent home for the tmQMg-L reference dataset. Defaults to
+        ``~/.cache/chem-db-lookup`` so the ~19 MB CSV is downloaded once and
+        reused, never re-fetched per run and never committed.
     match_tmqml : bool
         Whether to look up each record's SMILES/InChIKey in tmQMg-L.
     review : bool
@@ -150,10 +164,12 @@ def build_compound_db(
     cache_dir_p.mkdir(parents=True, exist_ok=True)
     pubchem_cache_path = cache_dir_p / "pubchem_cache.json"
 
+    tmqml_cache_p = Path(tmqml_cache_dir) if tmqml_cache_dir else _default_dataset_cache()
+
     throttle = make_throttler(rate_limit)
     tmqml_client: TmQMgLClient | None = None
     if match_tmqml:
-        tmqml_client = TmQMgLClient(cache_dir=cache_dir_p, sha=tmqml_sha)
+        tmqml_client = TmQMgLClient(cache_dir=tmqml_cache_p, sha=tmqml_sha)
 
     rows = list(rows)
     compounds: list[dict[str, Any]] = []
@@ -189,7 +205,7 @@ def build_compound_db(
         "n_tmqml_matched": sum(1 for r in compounds if r.get("tmqml") is not None),
         "sources_used": sorted(sources_used),
         "tmqml_sha": tmqml_sha if match_tmqml else None,
-        "cache_dir": str(cache_dir_p),
+        "tmqml_cache_dir": str(tmqml_cache_p) if match_tmqml else None,
         "review_enabled": bool(review),
     }
     ees = expected_electronic_structure if expected_electronic_structure is not None else {}
