@@ -20,7 +20,7 @@ of the `paper-fetch-smiles` pipeline; usable alone once the inputs exist.
 ```bash
 micromamba run -n paper-fetch-smiles python -m scripts.cli build-index \
   --structures structures --table table.json --compounds compounds.json \
-  --output index.json --mechanism mechanism.json \
+  --out index.json --mechanism mechanism.json \
   --aliases "NiPMe32=Ni(L1)2" \
   --log paper_fetch_log.md --paper-name "<First Author Year>"
 ```
