@@ -1,0 +1,323 @@
+{
+  "_units": {
+    "bbox": "pt",
+    "crop": "px"
+  },
+  "_schema": {
+    "reactions[]": {
+      "step": "1-based order along the cycle",
+      "from": "list of reactant species labels (paper's vocabulary)",
+      "to": "list of product species labels",
+      "kind": "elementary-step class, e.g. CO2_coordination / oxidative_coupling / insertion / beta_H_elimination / reductive_elimination / ligand_exchange / metathesis",
+      "note": "free text \u2014 barrier, regiochem, path label, spin"
+    }
+  },
+  "source_pdf": "test/co2-mech/Fan et al. - 2012 - Theoretical studies of reactions of carbon dioxide mediated and catalysed by transition metal comple.pdf",
+  "n_schemes": 38,
+  "schemes": [
+    {
+      "scheme": 1,
+      "page": 2,
+      "crop": "scheme-1.png",
+      "caption": "Scheme 1",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 2,
+      "page": 3,
+      "crop": "scheme-2.png",
+      "caption": "Scheme 2",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 3,
+      "page": 3,
+      "crop": "scheme-3.png",
+      "caption": "Scheme 3",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 4,
+      "page": 4,
+      "crop": "scheme-4.png",
+      "caption": "Scheme 4",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 5,
+      "page": 4,
+      "crop": "scheme-5.png",
+      "caption": "Scheme 5",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 6,
+      "page": 5,
+      "crop": "scheme-6.png",
+      "caption": "Scheme 6",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 7,
+      "page": 5,
+      "crop": "scheme-7.png",
+      "caption": "Scheme 7",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 8,
+      "page": 6,
+      "crop": "scheme-8.png",
+      "caption": "Scheme 8",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 9,
+      "page": 6,
+      "crop": "scheme-9.png",
+      "caption": "Scheme 9",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 10,
+      "page": 7,
+      "crop": "scheme-10.png",
+      "caption": "Scheme 10",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 11,
+      "page": 7,
+      "crop": "scheme-11.png",
+      "caption": "Scheme 11",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 12,
+      "page": 8,
+      "crop": "scheme-12.png",
+      "caption": "Scheme 12",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 13,
+      "page": 8,
+      "crop": "scheme-13.png",
+      "caption": "Scheme 13",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 14,
+      "page": 9,
+      "crop": "scheme-14.png",
+      "caption": "Scheme 14",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 15,
+      "page": 9,
+      "crop": "scheme-15.png",
+      "caption": "Scheme 15",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 16,
+      "page": 10,
+      "crop": "scheme-16.png",
+      "caption": "Scheme 16",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 17,
+      "page": 10,
+      "crop": "scheme-17.png",
+      "caption": "Scheme 17",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 18,
+      "page": 11,
+      "crop": "scheme-18.png",
+      "caption": "Scheme 18",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 19,
+      "page": 11,
+      "crop": "scheme-19.png",
+      "caption": "Scheme 19",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 20,
+      "page": 11,
+      "crop": "scheme-20.png",
+      "caption": "Scheme 20",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 21,
+      "page": 12,
+      "crop": "scheme-21.png",
+      "caption": "Scheme 21",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 22,
+      "page": 12,
+      "crop": "scheme-22.png",
+      "caption": "Scheme 22",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 23,
+      "page": 12,
+      "crop": "scheme-23.png",
+      "caption": "Scheme 23",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 24,
+      "page": 13,
+      "crop": "scheme-24.png",
+      "caption": "Scheme 24",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 25,
+      "page": 13,
+      "crop": "scheme-25.png",
+      "caption": "Scheme 25",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 26,
+      "page": 14,
+      "crop": "scheme-26.png",
+      "caption": "Scheme 26",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 27,
+      "page": 14,
+      "crop": "scheme-27.png",
+      "caption": "Scheme 27",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 28,
+      "page": 15,
+      "crop": "scheme-28.png",
+      "caption": "Scheme 28",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 29,
+      "page": 15,
+      "crop": "scheme-29.png",
+      "caption": "Scheme 29",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 30,
+      "page": 16,
+      "crop": "scheme-30.png",
+      "caption": "Scheme 30",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 32,
+      "page": 16,
+      "crop": "scheme-32.png",
+      "caption": "Scheme 32",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 31,
+      "page": 16,
+      "crop": "scheme-31.png",
+      "caption": "Scheme 31",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 33,
+      "page": 16,
+      "crop": "scheme-33.png",
+      "caption": "Scheme 33",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 35,
+      "page": 17,
+      "crop": "scheme-35.png",
+      "caption": "Scheme 35",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 34,
+      "page": 17,
+      "crop": "scheme-34.png",
+      "caption": "Scheme 34",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 36,
+      "page": 18,
+      "crop": "scheme-36.png",
+      "caption": "Scheme 36",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 38,
+      "page": 18,
+      "crop": "scheme-38.png",
+      "caption": "Scheme 38",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    },
+    {
+      "scheme": 37,
+      "page": 18,
+      "crop": "scheme-37.png",
+      "caption": "Scheme 37",
+      "is_catalytic_cycle": null,
+      "reactions": []
+    }
+  ]
+}

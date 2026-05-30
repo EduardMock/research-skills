@@ -1,0 +1,5 @@
+3
+charge=0 multiplicity=1 units=angstrom  name=CO2  (extracted from (unknown paper) SI)
+C       0.00000000      0.00000000      0.00000000
+O       0.00000000      0.00000000      1.16958300
+O       0.00000000      0.00000000     -1.16958300

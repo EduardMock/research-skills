@@ -1,0 +1,111 @@
+{
+  "_units": {
+    "width": "px",
+    "height": "px",
+    "size": "B"
+  },
+  "source_pdf": "test/ni-zhang/inorganics-12-00039.pdf",
+  "n_figures": 11,
+  "top_candidates": [
+    "fig-1638.jpg",
+    "fig-Figure-3.png",
+    "fig-Figure-7.png",
+    "fig-Figure-4.png",
+    "fig-Figure-8.png",
+    "fig-Figure-1.png",
+    "fig-Figure-5.png",
+    "fig-Figure-2.png",
+    "fig-Figure-6.png",
+    "fig-Scheme-1.png"
+  ],
+  "figures": [
+    {
+      "filename": "fig-000.png",
+      "fmt": "png",
+      "size_bytes": 9468,
+      "md5": "cb5a13c533210c1eb4d4f4884deda271",
+      "width_px": 500,
+      "height_px": 175
+    },
+    {
+      "filename": "fig-1638.jpg",
+      "fmt": "jpg",
+      "size_bytes": 199897,
+      "md5": "b83b080c97b7dc60c819ee5cc35ede71",
+      "width_px": 2182,
+      "height_px": 669
+    },
+    {
+      "filename": "fig-Figure-1.png",
+      "fmt": "png",
+      "size_bytes": 107677,
+      "md5": "780d22c451cfa4f93d4043372570bdf8",
+      "width_px": 1116,
+      "height_px": 636
+    },
+    {
+      "filename": "fig-Figure-2.png",
+      "fmt": "png",
+      "size_bytes": 91571,
+      "md5": "cc32d8f4d7c74e87a6696be9c53e7127",
+      "width_px": 1116,
+      "height_px": 673
+    },
+    {
+      "filename": "fig-Figure-3.png",
+      "fmt": "png",
+      "size_bytes": 125974,
+      "md5": "d23801df7ee0bc16ba6f6cbab2d81a07",
+      "width_px": 1116,
+      "height_px": 851
+    },
+    {
+      "filename": "fig-Figure-4.png",
+      "fmt": "png",
+      "size_bytes": 111433,
+      "md5": "a2edb3409414c2bfdb44e949afdde16c",
+      "width_px": 1116,
+      "height_px": 625
+    },
+    {
+      "filename": "fig-Figure-5.png",
+      "fmt": "png",
+      "size_bytes": 102496,
+      "md5": "8980c343bb2921015d232a1573de4ca6",
+      "width_px": 1116,
+      "height_px": 668
+    },
+    {
+      "filename": "fig-Figure-6.png",
+      "fmt": "png",
+      "size_bytes": 91566,
+      "md5": "9950afc3c2996d68bbdbefdb7930cf09",
+      "width_px": 1116,
+      "height_px": 641
+    },
+    {
+      "filename": "fig-Figure-7.png",
+      "fmt": "png",
+      "size_bytes": 117188,
+      "md5": "954a76868b8a7a3328d40dec96fb0406",
+      "width_px": 1116,
+      "height_px": 726
+    },
+    {
+      "filename": "fig-Figure-8.png",
+      "fmt": "png",
+      "size_bytes": 108892,
+      "md5": "83b0dd27680ccb16355ed085549cbe22",
+      "width_px": 1116,
+      "height_px": 684
+    },
+    {
+      "filename": "fig-Scheme-1.png",
+      "fmt": "png",
+      "size_bytes": 42948,
+      "md5": "19a9f0674169dff9a7abacb8fa1b0ebe",
+      "width_px": 1116,
+      "height_px": 462
+    }
+  ]
+}
