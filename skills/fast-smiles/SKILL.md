@@ -5,6 +5,18 @@ description: Use when performing targeted edits on an existing SMILES from a nat
 
 # Fast SMILES Edits
 
+## Environment check (run BEFORE any code execution)
+
+This skill runs code in the default mamba env **`skill-env`** (RDKit is light enough not to need a dedicated env). Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update `/storage/edm/envs/skill-env.yml` first).
+
+```bash
+ENV=skill-env
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define /storage/edm/envs/${ENV}.yml and create with: micromamba create -n $ENV -f /storage/edm/envs/${ENV}.yml" >&2; exit 1; }
+micromamba run -n "$ENV" python -c "from rdkit import Chem" 2>/dev/null \
+  || { echo "ERROR: python package 'rdkit' not available in env '$ENV' — add to /storage/edm/envs/${ENV}.yml and reinstall." >&2; exit 1; }
+```
+
 ## Overview
 
 Input: a SMILES + an NL instruction (`"add OH alpha to the ketone"`, `"remove the Boc group"`, `"move the benzyl group to the alpha carbon"`). Output: an edited SMILES, verified.

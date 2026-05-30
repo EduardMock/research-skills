@@ -5,6 +5,22 @@ description: Use when converting a chemistry paper PDF into a structured compoun
 
 # paper-fetch-smiles
 
+## Environment check (run BEFORE any code execution)
+
+This skill runs code in the default mamba env **`skill-env`** (RDKit + PubChemPy + requests — all light). Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update `/storage/edm/envs/skill-env.yml` first).
+
+```bash
+ENV=skill-env
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define /storage/edm/envs/${ENV}.yml and create with: micromamba create -n $ENV -f /storage/edm/envs/${ENV}.yml" >&2; exit 1; }
+for pkg in rdkit pubchempy requests; do
+  micromamba run -n "$ENV" python -c "import $pkg" 2>/dev/null \
+    || { echo "ERROR: python package '$pkg' not available in env '$ENV' — add to /storage/edm/envs/${ENV}.yml and reinstall." >&2; exit 1; }
+done
+```
+
+If existing examples below show `micromamba run -n mdclustering ...`, that's a legacy project-specific env from prior runs — substitute `$ENV` (`skill-env`) unless the user explicitly asks for the project env.
+
 ## Purpose
 
 Turn a chemistry paper PDF into a resolved compound catalog. The skill produces three artifacts in tandem:

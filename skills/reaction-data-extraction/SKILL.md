@@ -5,6 +5,20 @@ description: Use when extracting structured reaction data (reactants, products, 
 
 # Reaction Data Extraction (RxnScribe)
 
+## Environment check (run BEFORE any code execution)
+
+This skill needs a dedicated mamba env **`rxnscribe-env`** — RxnScribe pulls in heavy PyTorch + transformers + MolScribe deps that don't belong in the shared `skill-env`. Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update `/storage/edm/envs/rxnscribe-env.yml` first).
+
+```bash
+ENV=rxnscribe-env
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define /storage/edm/envs/${ENV}.yml and create with: micromamba create -n $ENV -f /storage/edm/envs/${ENV}.yml" >&2; exit 1; }
+for pkg in rxnscribe torch transformers huggingface_hub rdkit; do
+  micromamba run -n "$ENV" python -c "import $pkg" 2>/dev/null \
+    || { echo "ERROR: python package '$pkg' not available in env '$ENV' — add to /storage/edm/envs/${ENV}.yml and reinstall." >&2; exit 1; }
+done
+```
+
 ## Overview
 
 [RxnScribe](https://github.com/thomas0809/RxnScribe) is a **pix2seq** vision-encoder + autoregressive-decoder model from the Coley group (MIT) that reads a reaction-scheme image and emits a *sequence of role-typed bounding boxes* — reactants (red), conditions (green), products (blue) — for one or more reactions per image. Each molecule box is routed to MolScribe (the OCSR companion model) for SMILES; each condition box is routed to OCR for text.

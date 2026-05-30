@@ -8,6 +8,20 @@ metadata:
 
 # NGLView - Interactive Molecular Visualization for Chemistry
 
+## Environment check (run BEFORE any code execution)
+
+This skill runs code in the default mamba env **`skill-env`** (NGLView's deps are light enough not to need a dedicated env). Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update `/storage/edm/envs/skill-env.yml` first).
+
+```bash
+ENV=skill-env
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define /storage/edm/envs/${ENV}.yml and create with: micromamba create -n $ENV -f /storage/edm/envs/${ENV}.yml" >&2; exit 1; }
+for pkg in nglview IPython; do
+  micromamba run -n "$ENV" python -c "import $pkg" 2>/dev/null \
+    || { echo "ERROR: python package '$pkg' not available in env '$ENV' — add to /storage/edm/envs/${ENV}.yml and reinstall." >&2; exit 1; }
+done
+```
+
 ## Overview
 
 NGLView is an IPython/Jupyter widget for interactive 3D visualization of proteins, small molecules, catalysts, organometallic complexes, and molecular dynamics simulations directly in notebooks. Built on the NGL molecular graphics library, it provides a pythonic interface for creating publication-quality visualizations of chemical structures, reaction coordinates, conformers, and computational chemistry results.

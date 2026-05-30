@@ -5,6 +5,22 @@ description: Use when running fast semi-empirical QM calculations (single-point 
 
 # g-xTB (Grimme)
 
+## Environment check (run BEFORE any code execution)
+
+This skill needs the `xtb` binary (a modified `xtb 6.7.1`, NOT stock GFN2-xTB). Skill code is launched from mamba env **`g-xtb`** — dedicated because the binary is upstream-specific, not a pip package. Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update `/storage/edm/envs/g-xtb.yml` first).
+
+```bash
+ENV=g-xtb
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define /storage/edm/envs/${ENV}.yml and create with: micromamba create -n $ENV -f /storage/edm/envs/${ENV}.yml" >&2; exit 1; }
+# Require the g-xTB-capable xtb binary (either on PATH inside env, or $GXTB_BIN):
+if [ -n "${GXTB_BIN:-}" ]; then BIN="$GXTB_BIN"; else BIN=$(micromamba run -n "$ENV" command -v xtb 2>/dev/null); fi
+[ -n "$BIN" ] && [ -x "$BIN" ] \
+  || { echo "ERROR: 'xtb' binary not available in env '$ENV' and \$GXTB_BIN is unset. Install the g-xTB tarball and set \$GXTB_BIN, or add xtb to /storage/edm/envs/${ENV}.yml." >&2; exit 1; }
+"$BIN" --gxtb --help >/dev/null 2>&1 \
+  || { echo "ERROR: 'xtb' at $BIN does not support --gxtb (likely stock GFN2-xTB). Replace with the modified g-xTB build from grimme-lab/g-xtb." >&2; exit 1; }
+```
+
 ## Overview
 
 **g-xTB** is Grimme-lab's general-purpose semi-empirical QM method that approximates **ωB97M-V/def2-TZVPPD** properties across **Z = 1–103**. It is delivered as a modified `xtb 6.7.1` binary interfacing a modified `tblite`. Turn on with the single flag `--gxtb`. No parameter files needed; single-point on water runs in ~0.3 s wall-time.

@@ -13,6 +13,24 @@ triggers:
 
 ---
 
+## Environment check (run BEFORE executing any notebook)
+
+This skill runs notebooks in the **project's mamba env** — usually defined by the project's `env.yml` (per `chem-code-kickstart` convention) and bound to `$PROJECT_ENV`. If the project does not declare its own env, fall back to **`skill-env`** as the default. Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update the project yml or `/storage/edm/envs/skill-env.yml` first).
+
+```bash
+ENV="${PROJECT_ENV:-skill-env}"
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define its yml and create with: micromamba create -n $ENV -f <path>.yml" >&2; exit 1; }
+for pkg in jupyter nbconvert ipykernel; do
+  micromamba run -n "$ENV" python -c "import $pkg" 2>/dev/null \
+    || { echo "ERROR: python package '$pkg' not available in env '$ENV' — add to the env yml and reinstall." >&2; exit 1; }
+done
+```
+
+Throughout this skill, replace the placeholder `specified_enviorment` in commands below with `$ENV`.
+
+---
+
 ## Execution
 
 Always run notebooks via nbconvert with the project environment:

@@ -8,6 +8,22 @@ metadata:
 
 # MonicaMD — MD Simulation Analysis Toolkit
 
+## Environment check (run BEFORE any code execution)
+
+This skill runs code in mamba env **`mdclustering`** (dedicated — the env carries the editable MonicaMD install and its `mmd.yml` deps). Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update `/storage/edm/envs/mdclustering.yml` first).
+
+```bash
+ENV=mdclustering
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define /storage/edm/envs/${ENV}.yml and create with: micromamba create -n $ENV -f /storage/edm/envs/${ENV}.yml" >&2; exit 1; }
+for pkg in monicamd numpy scipy sklearn; do
+  micromamba run -n "$ENV" python -c "import $pkg" 2>/dev/null \
+    || { echo "ERROR: python package '$pkg' not available in env '$ENV' — add to /storage/edm/envs/${ENV}.yml and reinstall." >&2; exit 1; }
+done
+```
+
+If `monicamd` fails to import, the editable install is likely stale (see global CLAUDE.md → MDClustering section: override with `PYTHONPATH=/storage/edm/github/MDClustering/src` for one-off invocations).
+
 ## Overview
 
 MonicaMD (**Mo**lecules and **I**nternal **C**luster **A**nalysis of **MD** simulations) is a Python toolkit for analyzing geometric and electrostatic features of any MD simulation. It supports:

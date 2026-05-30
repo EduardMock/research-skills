@@ -5,6 +5,23 @@ description: Use when converting a 2D molecular structure image (PNG/JPG of a si
 
 # Mol Image → SMILES (OCSR)
 
+## Environment check (run BEFORE any code execution)
+
+This skill needs a dedicated mamba env **`decimer-env`** — DECIMER pulls in TensorFlow, which doesn't belong in the shared `skill-env`. Run this check first; if it fails, STOP and report the missing piece — do NOT install ad-hoc (per global CLAUDE.md, always update `/storage/edm/envs/decimer-env.yml` first).
+
+```bash
+ENV=decimer-env
+micromamba env list | awk '{print $1}' | grep -qx "$ENV" \
+  || { echo "ERROR: mamba env '$ENV' not available — define /storage/edm/envs/${ENV}.yml and create with: micromamba create -n $ENV -f /storage/edm/envs/${ENV}.yml" >&2; exit 1; }
+for pkg in DECIMER rdkit PIL; do
+  micromamba run -n "$ENV" python -c "import $pkg" 2>/dev/null \
+    || { echo "ERROR: python package '$pkg' not available in env '$ENV' — add to /storage/edm/envs/${ENV}.yml and reinstall." >&2; exit 1; }
+done
+# Optional fallback engines — only required if you intend to use them:
+# micromamba run -n "$ENV" python -c "import huggingface_hub"            # MolNextR fallback
+# micromamba run -n "$ENV" python -c "import decimer_segmentation"       # whole-page segmentation
+```
+
 ## Overview
 
 Optical Chemical Structure Recognition (OCSR): take a raster image of one molecule, return a SMILES string. The skill wraps two production OCSR models:
